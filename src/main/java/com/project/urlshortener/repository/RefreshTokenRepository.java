@@ -14,4 +14,10 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     long deleteByExpiresAtBefore(Instant instant);
 
     long deleteByUser(User user);
+
+    long countByRevokedFalseAndExpiresAtAfter(Instant instant);
+
+    long countByRevokedTrue();
+
+    long countByExpiresAtBefore(Instant instant);
 }

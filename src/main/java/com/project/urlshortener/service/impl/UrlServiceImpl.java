@@ -6,6 +6,10 @@ import com.project.urlshortener.config.ShortUrlProperties;
 import com.project.urlshortener.cache.ShortUrlCacheEntry;
 import com.project.urlshortener.cache.ShortUrlCacheService;
 import com.project.urlshortener.dto.request.CreateShortUrlRequest;
+import com.project.urlshortener.dto.request.ShortUrlSearchRequest;
+import com.project.urlshortener.dto.request.UpdateShortUrlRequest;
+import com.project.urlshortener.dto.request.UpdateShortUrlStatusRequest;
+import com.project.urlshortener.dto.response.PageResponse;
 import com.project.urlshortener.dto.response.ShortUrlResponse;
 import com.project.urlshortener.entity.ShortUrl;
 import com.project.urlshortener.entity.User;
@@ -16,7 +20,13 @@ import com.project.urlshortener.mapper.ShortUrlMapper;
 import com.project.urlshortener.repository.ShortUrlRepository;
 import com.project.urlshortener.repository.UserRepository;
 import com.project.urlshortener.service.UrlService;
+import com.project.urlshortener.specification.ShortUrlSpecifications;
 import com.project.urlshortener.util.ShortCodeGenerator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +34,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
 public class UrlServiceImpl implements UrlService {
+
+    private static final List<String> ALLOWED_SORT_FIELDS = List.of("createdAt", "updatedAt", "clickCount", "shortCode", "expiresAt", "originalUrl");
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ShortUrlRepository shortUrlRepository;
     private final UserRepository userRepository;
@@ -102,6 +117,108 @@ public class UrlServiceImpl implements UrlService {
         cacheShortUrl(shortUrl);
         incrementClickCount(normalizedShortCode);
         return shortUrl.getOriginalUrl();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ShortUrlResponse> listMyShortUrls(String createdByEmail, ShortUrlSearchRequest request) {
+        User user = userRepository.findByEmail(normalizeEmail(createdByEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        Pageable pageable = toPageable(request.getPage(), request.getSize(), request.getSortBy(), request.getSortDirection());
+        Specification<ShortUrl> specification = ShortUrlSpecifications.ownerView(
+                user,
+                request.getQuery(),
+                request.getEnabled(),
+                request.getExpired(),
+                request.getHasCustomAlias()
+        );
+
+        Page<ShortUrl> page = shortUrlRepository.findAll(specification, pageable);
+        List<ShortUrlResponse> content = new ArrayList<>();
+        for (ShortUrl shortUrl : page.getContent()) {
+            content.add(ShortUrlMapper.toResponse(shortUrl, shortUrlProperties));
+        }
+
+        return new PageResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.hasNext(),
+                page.hasPrevious()
+        );
+    }
+
+    @Override
+    @Transactional
+    public ShortUrlResponse updateShortUrl(String createdByEmail, Long shortUrlId, UpdateShortUrlRequest request) {
+        User user = userRepository.findByEmail(normalizeEmail(createdByEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        ShortUrl shortUrl = shortUrlRepository.findByIdAndCreatedByEmail(shortUrlId, user.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Short URL not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        String oldShortCode = shortUrl.getShortCode();
+        String updatedOriginalUrl = request.getOriginalUrl() == null ? shortUrl.getOriginalUrl() : normalizeAndValidateUrl(request.getOriginalUrl());
+        String requestedAlias = request.getCustomAlias() == null ? null : normalizeAlias(request.getCustomAlias());
+
+        if (request.getExpiresAt() != null) {
+            validateExpiry(request.getExpiresAt());
+            shortUrl.setExpiresAt(request.getExpiresAt());
+        }
+
+        if (requestedAlias != null && !requestedAlias.equals(oldShortCode)) {
+            if (shortUrlRepository.existsByShortCode(requestedAlias)) {
+                throw new ConflictException("Custom alias already exists", ErrorCodes.CONFLICT);
+            }
+            shortUrl.setShortCode(requestedAlias);
+            shortUrl.setCustomAlias(requestedAlias);
+        } else if (requestedAlias == null && request.getCustomAlias() != null && request.getCustomAlias().isBlank()) {
+            shortUrl.setCustomAlias(null);
+        }
+
+        shortUrl.setOriginalUrl(updatedOriginalUrl);
+        shortUrl.setUpdatedAt(Instant.now());
+
+        ShortUrl savedShortUrl = shortUrlRepository.save(shortUrl);
+        shortUrlCacheService.evict(oldShortCode);
+        cacheShortUrl(savedShortUrl);
+        return ShortUrlMapper.toResponse(savedShortUrl, shortUrlProperties);
+    }
+
+    @Override
+    @Transactional
+    public ShortUrlResponse updateShortUrlStatus(String createdByEmail, Long shortUrlId, UpdateShortUrlStatusRequest request) {
+        User user = userRepository.findByEmail(normalizeEmail(createdByEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        ShortUrl shortUrl = shortUrlRepository.findByIdAndCreatedByEmail(shortUrlId, user.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Short URL not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        shortUrl.setEnabled(request.isEnabled());
+        shortUrl.setUpdatedAt(Instant.now());
+        ShortUrl savedShortUrl = shortUrlRepository.save(shortUrl);
+        if (request.isEnabled()) {
+            cacheShortUrl(savedShortUrl);
+        } else {
+            shortUrlCacheService.evict(savedShortUrl.getShortCode());
+        }
+        return ShortUrlMapper.toResponse(savedShortUrl, shortUrlProperties);
+    }
+
+    @Override
+    @Transactional
+    public void deleteShortUrl(String createdByEmail, Long shortUrlId) {
+        User user = userRepository.findByEmail(normalizeEmail(createdByEmail))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        ShortUrl shortUrl = shortUrlRepository.findByIdAndCreatedByEmail(shortUrlId, user.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Short URL not found", ErrorCodes.RESOURCE_NOT_FOUND));
+
+        shortUrlCacheService.evict(shortUrl.getShortCode());
+        shortUrlRepository.delete(shortUrl);
     }
 
     private String generateUniqueShortCode() {
@@ -196,5 +313,24 @@ public class UrlServiceImpl implements UrlService {
 
     private void incrementClickCount(String shortCode) {
         shortUrlRepository.incrementClickCountByShortCode(shortCode, Instant.now());
+    }
+
+    private Pageable toPageable(int page, int size, String sortBy, String sortDirection) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+        String safeSortBy = normalizeSortField(sortBy);
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return PageRequest.of(safePage, safeSize, Sort.by(direction, safeSortBy));
+    }
+
+    private String normalizeSortField(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "createdAt";
+        }
+        String candidate = sortBy.trim();
+        if (!ALLOWED_SORT_FIELDS.contains(candidate)) {
+            throw new BadRequestException("Unsupported sort field", ErrorCodes.BAD_REQUEST);
+        }
+        return candidate;
     }
 }

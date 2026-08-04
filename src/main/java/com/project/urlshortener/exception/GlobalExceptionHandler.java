@@ -26,6 +26,8 @@ public class GlobalExceptionHandler {
                 ? HttpStatus.NOT_FOUND
                 : exception instanceof ConflictException
                 ? HttpStatus.CONFLICT
+                : exception instanceof ServiceUnavailableException
+                ? HttpStatus.SERVICE_UNAVAILABLE
                 : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(errorResponse);
     }
