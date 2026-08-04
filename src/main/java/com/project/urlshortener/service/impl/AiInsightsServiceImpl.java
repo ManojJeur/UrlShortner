@@ -311,7 +311,7 @@ public class AiInsightsServiceImpl implements AiInsightsService {
         AiGateway aiGateway = aiGatewayProvider.getIfAvailable();
         if (aiGateway == null) {
             throw new ServiceUnavailableException(
-                    "AI features are disabled. Set APP_AI_ENABLED=true and configure an OpenAI API key to enable them.",
+                    "AI features are disabled. Set APP_AI_ENABLED=true and configure an xAI API key to enable them.",
                     ErrorCodes.SERVICE_UNAVAILABLE
             );
         }

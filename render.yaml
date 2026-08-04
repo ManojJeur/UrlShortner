@@ -1,0 +1,59 @@
+databases:
+  - name: urlshortener-db
+    plan: basic-1gb
+    databaseName: urlshortener
+    user: urlshortener
+    ipAllowList: []
+
+services:
+  - type: web
+    name: urlshortener-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: commit
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: SERVER_PORT
+        value: 10000
+      - key: APP_BASE_URL
+        fromService:
+          type: web
+          name: urlshortener-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: DB_URL
+        fromDatabase:
+          name: urlshortener-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: urlshortener-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: urlshortener-db
+          property: password
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: urlshortener-cache
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_AI_ENABLED
+        value: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: XAI_BASE_URL
+        value: https://api.x.ai
+      - key: XAI_MODEL
+        value: grok-4.5
+      - key: XAI_TEMPERATURE
+        value: 0.3
+      - key: XAI_MAX_TOKENS
+        value: 1200
+  - type: keyvalue
+    name: urlshortener-cache
+    ipAllowList: []

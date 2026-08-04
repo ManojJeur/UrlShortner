@@ -1,5 +1,5 @@
 CREATE TABLE click_events (
-    id BIGINT NOT NULL AUTO_INCREMENT,
+    id BIGSERIAL NOT NULL,
     short_url_id BIGINT NOT NULL,
     created_by_id BIGINT NOT NULL,
     ip_address VARCHAR(64) NOT NULL,
