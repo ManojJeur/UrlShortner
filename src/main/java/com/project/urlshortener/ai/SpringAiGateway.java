@@ -23,9 +23,7 @@ public class SpringAiGateway implements AiGateway {
                     .system(systemPrompt)
                     .user(userPrompt)
                     .call()
-                    .entity(responseType, entitySpec -> entitySpec
-                            .useProviderStructuredOutput()
-                            .validateSchema());
+                    .entity(responseType);
         } catch (RuntimeException exception) {
             throw new ServiceUnavailableException(
                     "AI service is temporarily unavailable",

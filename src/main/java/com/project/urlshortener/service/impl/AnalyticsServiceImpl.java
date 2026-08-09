@@ -109,7 +109,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDate end = LocalDate.now(ZoneOffset.UTC);
         LocalDate start = end.minusDays(Math.max(0, days - 1L));
         return buildDateSeries(events, start, end, event -> event.getClickedAt().atZone(ZoneOffset.UTC).toLocalDate(),
-                date -> DAILY_FORMATTER.format(date), LocalDate::plusDays);
+                date -> DAILY_FORMATTER.format(date), date -> date.plusDays(1));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         WeekFields weekFields = WeekFields.ISO;
         return buildDateSeries(events, start, end, event -> event.getClickedAt().atZone(ZoneOffset.UTC).toLocalDate(),
                 date -> String.format(Locale.ROOT, "%d-W%02d", date.get(weekFields.weekBasedYear()), date.get(weekFields.weekOfWeekBasedYear())),
-                LocalDate::plusWeeks);
+                date -> date.plusWeeks(1));
     }
 
     @Override
