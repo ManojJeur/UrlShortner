@@ -68,6 +68,7 @@ D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\Cust
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\CustomUserDetailsService.java
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\JwtAuthenticationFilter.java
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\JwtService.java
+D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\RestAccessDeniedHandler.java
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\security\RestAuthenticationEntryPoint.java
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\service\AiInsightsService.java
 D:\MainProjects\UrlShortner\src\main\java\com\project\urlshortener\service\AnalyticsService.java

@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,10 +45,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         String identifier = resolveIdentifier(request);
-        boolean allowed = redisRateLimiter.tryAcquire(rule.keyPrefix, identifier, rule.limit, Duration.ofSeconds(rule.windowSeconds));
+        boolean allowed;
+        try {
+            allowed = redisRateLimiter.tryAcquire(
+                    rule.keyPrefix, identifier, rule.limit, Duration.ofSeconds(rule.windowSeconds));
+        } catch (DataAccessException exception) {
+            response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
+            objectMapper.writeValue(response.getWriter(),
+                    ErrorResponse.of("Rate limiting is temporarily unavailable", "SERVICE_UNAVAILABLE"));
+            return;
+        }
         if (!allowed) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(java.nio.charset.StandardCharsets.UTF_8.name());
             objectMapper.writeValue(response.getWriter(),
                     ErrorResponse.of("Too many requests", "RATE_LIMIT_EXCEEDED"));
             return;
