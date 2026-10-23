@@ -2,6 +2,7 @@ package com.project.urlshortener.controller;
 
 import com.project.urlshortener.constants.ApiConstants;
 import com.project.urlshortener.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class HealthController {
 
     @GetMapping("/health")
+    @Operation(security = {})
     public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("service", "urlshortener");

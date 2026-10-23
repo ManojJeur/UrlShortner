@@ -23,6 +23,7 @@
         <spring-ai.version>1.1.8</spring-ai.version>
         <springdoc.version>2.6.0</springdoc.version>
         <testcontainers.version>1.20.1</testcontainers.version>
+    	<flyway.version>10.15.0</flyway.version> <!-- or latest 10.x version -->
     </properties>
 
     <dependencyManagement>
@@ -77,6 +78,10 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

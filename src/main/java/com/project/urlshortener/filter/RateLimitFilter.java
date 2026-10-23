@@ -78,11 +78,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return authentication.getName();
         }
 
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-
+        // X-Forwarded-For is client-controlled unless a trusted proxy explicitly sanitizes it.
         return request.getRemoteAddr();
     }
 

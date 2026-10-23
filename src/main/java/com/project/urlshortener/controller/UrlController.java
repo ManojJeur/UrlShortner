@@ -10,6 +10,7 @@ import com.project.urlshortener.dto.response.ShortUrlResponse;
 import com.project.urlshortener.response.ApiResponse;
 import com.project.urlshortener.service.AnalyticsService;
 import com.project.urlshortener.service.UrlService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -92,6 +93,7 @@ public class UrlController {
     }
 
     @GetMapping("/r/{shortCode}")
+    @Operation(security = {})
     public ResponseEntity<Void> redirect(@PathVariable String shortCode, HttpServletRequest request) {
         String originalUrl = urlService.resolveOriginalUrl(shortCode);
         try {

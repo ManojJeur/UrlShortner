@@ -29,11 +29,17 @@ public class JwtService {
         this.jwtProperties = jwtProperties;
         String secret = jwtProperties.getSecret();
         if (secret == null || secret.isBlank()) {
-            secret = "change-this-secret-change-this-secret-change-this-secret";
+            throw new IllegalStateException("app.jwt.secret must be configured");
         }
-        byte[] keyBytes = isBase64(secret)
-                ? Decoders.BASE64.decode(secret)
-                : secret.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes;
+        try {
+            keyBytes = isBase64(secret) ? Decoders.BASE64.decode(secret) : secret.getBytes(StandardCharsets.UTF_8);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("app.jwt.secret must be valid Base64 or a UTF-8 key", exception);
+        }
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("app.jwt.secret must contain at least 256 bits of key material");
+        }
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 

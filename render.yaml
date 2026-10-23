@@ -54,19 +54,19 @@ services:
       - key: APP_AI_ENABLED
         value: false
 
-      - key: XAI_API_KEY
+      - key: GROQ_API_KEY
         sync: false
 
-      - key: XAI_BASE_URL
-        value: https://api.x.ai
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai
 
-      - key: XAI_MODEL
-        value: grok-4.5
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
 
-      - key: XAI_TEMPERATURE
+      - key: GROQ_TEMPERATURE
         value: 0.3
 
-      - key: XAI_MAX_TOKENS
+      - key: GROQ_MAX_TOKENS
         value: 1200
 
   - type: keyvalue

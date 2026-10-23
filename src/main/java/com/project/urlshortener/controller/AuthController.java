@@ -7,6 +7,7 @@ import com.project.urlshortener.dto.request.RegisterRequest;
 import com.project.urlshortener.dto.response.AuthResponse;
 import com.project.urlshortener.response.ApiResponse;
 import com.project.urlshortener.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(security = {})
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse authResponse = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -33,12 +35,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(security = {})
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", authResponse));
     }
 
     @PostMapping("/refresh")
+    @Operation(security = {})
     public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         AuthResponse authResponse = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", authResponse));

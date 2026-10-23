@@ -11,8 +11,11 @@ WORKDIR /app
 
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
 
-COPY --from=build /workspace/target/urlshortener-0.0.1-SNAPSHOT.jar /app/app.jar
+RUN groupadd --system spring && useradd --system --gid spring --home-dir /app spring
+COPY --from=build --chown=spring:spring /workspace/target/urlshortener-*.jar /app/app.jar
 
 EXPOSE 10000
+
+USER spring
 
 CMD ["java", "-jar", "/app/app.jar"]

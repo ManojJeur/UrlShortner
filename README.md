@@ -1,6 +1,6 @@
 # URL Shortener API
 
-Production-ready Spring Boot backend for creating short links, tracking engagement, and generating Grok-powered growth insights.
+Spring Boot backend for creating short links, tracking engagement, and generating Groq-powered growth insights.
 
 ## Overview
 
@@ -26,7 +26,7 @@ flowchart LR
     Client[API Consumer / Browser] --> API[Spring Boot REST API]
     API --> Postgres[(PostgreSQL)]
     API --> Redis[(Redis / Render Key Value)]
-    API --> Grok[xAI Grok via Spring AI]
+    API --> Groq[Groq via Spring AI]
     API --> Docs[Swagger UI / OpenAPI]
     API --> Actuator[Actuator Health / Metrics]
 ```
@@ -37,7 +37,7 @@ The backend is organized as a stateless REST service:
 - Services implement business logic and analytics aggregation
 - Repositories persist entities in PostgreSQL through Spring Data JPA
 - Redis handles caching and rate limiting
-- Spring AI calls xAI's OpenAI-compatible API when AI features are enabled
+- Spring AI calls Groq's OpenAI-compatible API when AI features are enabled
 
 ## Technology Stack
 
@@ -60,8 +60,8 @@ The backend is organized as a stateless REST service:
 - Cache-first performance: Redis is used for short-link caching and API rate limiting
 - Schema versioning: Flyway migrations keep database changes reproducible
 - Production observability: Actuator health and info endpoints support deployment checks
-- AI with business context: Grok is used only for value-added tasks such as alias generation and analytics interpretation
-- No fake AI endpoint: AI calls go through xAI's OpenAI-compatible API only when enabled
+- AI with business context: Groq is used only for value-added tasks such as alias generation and analytics interpretation
+- No fake AI endpoint: AI calls go through Groq's OpenAI-compatible API only when enabled
 
 ## Data Model
 
@@ -144,7 +144,7 @@ Base path: `/api/v1`
 
 ```text
 src/main/java/com/project/urlshortener
-  ai/           Grok integration and traffic anomaly logic
+  ai/           Groq integration and traffic anomaly logic
   cache/        Redis cache and rate limiting
   config/       Application, security, JWT, Redis, and AI configuration
   controller/   REST controllers
@@ -187,11 +187,12 @@ Minimum local configuration:
 Optional configuration:
 
 - `APP_AI_ENABLED`
-- `XAI_API_KEY`
-- `XAI_BASE_URL`
-- `XAI_MODEL`
-- `XAI_TEMPERATURE`
-- `XAI_MAX_TOKENS`
+- `SPRING_AI_MODEL_CHAT` (`openai` when enabling the Groq chat integration)
+- `GROQ_API_KEY`
+- `GROQ_BASE_URL` (defaults to `https://api.groq.com/openai`; Spring AI adds the `/v1/chat/completions` path)
+- `GROQ_MODEL` (defaults to `openai/gpt-oss-120b`)
+- `GROQ_TEMPERATURE`
+- `GROQ_MAX_TOKENS`
 - `SHORT_URL_CODE_LENGTH`
 - `SHORT_URL_GENERATION_ATTEMPTS`
 - `JWT_ACCESS_TOKEN_SECONDS`
@@ -224,7 +225,7 @@ Highlights:
 
 AI is intentionally narrow and business-focused.
 
-When `APP_AI_ENABLED=true` and `XAI_API_KEY` is present, the app uses Spring AI with xAI's OpenAI-compatible API to:
+When `APP_AI_ENABLED=true` and `GROQ_API_KEY` is present, the app uses Spring AI with Groq's OpenAI-compatible API to:
 
 - generate better aliases
 - generate SEO-friendly aliases
@@ -255,30 +256,34 @@ The repository includes a Dockerfile and a Render blueprint.
 
 ### Render
 
-Render provisions:
+Render provisions a small demonstration deployment:
 
 - the web service
 - PostgreSQL
 - Redis-compatible Key Value storage
+
+The blueprint currently uses Render's free plans. Those plans have provider-specific limits and do not provide the availability, capacity, or recovery guarantees expected for a paid production service. Choose plans that match the required traffic and availability before launch.
+
+The deployed `render` profile disables Swagger UI and OpenAPI, hides health details, exposes only the health actuator endpoint, and requires `JWT_SECRET`. Render generates this secret in the blueprint. Keep it stable across deploys; replacing it invalidates existing access and refresh tokens.
 
 Deploy steps:
 
 1. Push the repository to GitHub.
 2. In Render, create a new Blueprint and connect the repo.
 3. Render reads `render.yaml` and creates the infrastructure.
-4. Add `XAI_API_KEY` if you want the AI endpoints enabled.
-5. Deploy and wait for `/actuator/health` to become healthy.
-6. Keep `APP_AI_ENABLED=false` until your xAI key is ready, then set it to `true`.
+4. To enable AI features, add `GROQ_API_KEY`, set `APP_AI_ENABLED=true`, and set `SPRING_AI_MODEL_CHAT=openai`. The blueprint configures the Groq endpoint and `openai/gpt-oss-120b` model by default.
+5. Configure backups and retention for PostgreSQL, and select paid service plans suitable for the expected traffic.
+6. Deploy and wait for `/actuator/health` to become healthy.
 
 ### Docker
 
-The container image builds the application in a multi-stage Dockerfile and exposes port `10000`.
+The container image builds the application in a multi-stage Dockerfile, runs as an unprivileged user, and exposes port `10000`.
 
 ## Implementation Notes
 
 - The application is backend-only; there is no frontend in this repository
 - No blockchain or smart-contract layer is included
-- The codebase currently focuses on URL management, analytics, security, caching, and Grok-powered insights
+- The codebase currently focuses on URL management, analytics, security, caching, and Groq-powered insights
 - No GitHub Actions or other CI workflow files are committed in the repository
 
 ## Future Improvements
