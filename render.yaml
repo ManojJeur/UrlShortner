@@ -54,9 +54,6 @@ services:
       - key: APP_AI_ENABLED
         value: true
 
-      - key: GROQ_API_KEY
-        sync: true
-
       - key: GROQ_BASE_URL
         value: https://api.groq.com/openai
 
