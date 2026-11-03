@@ -52,10 +52,10 @@ services:
         generateValue: true
 
       - key: APP_AI_ENABLED
-        value: false
+        value: true
 
       - key: GROQ_API_KEY
-        sync: false
+        sync: true
 
       - key: GROQ_BASE_URL
         value: https://api.groq.com/openai
